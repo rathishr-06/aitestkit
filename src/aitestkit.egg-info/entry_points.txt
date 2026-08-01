@@ -1,0 +1,2 @@
+[console_scripts]
+aitest = aitestkit.cli.main:cli
