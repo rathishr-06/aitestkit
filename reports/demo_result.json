@@ -1,0 +1,23 @@
+{
+    "llm": {
+        "accuracy_score": 0.4,
+        "semantic_similarity": 0.4,
+        "hallucination_score": 0.0,
+        "completeness_score": 0.65,
+        "reasoning_quality": 0.0
+    },
+    "safety": {
+        "prompt_injection_risk": 0.0,
+        "jailbreak_risk": 0.0,
+        "toxicity_score": 0.0,
+        "pii_leakage_detected": false,
+        "is_safe": true
+    },
+    "rag": {
+        "faithfulness": 0.5,
+        "answer_relevance": 0.2,
+        "context_relevance": 0.2,
+        "context_recall": 0.0,
+        "context_precision": 0.0
+    }
+}

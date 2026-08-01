@@ -12,6 +12,7 @@ src/aitestkit/cli/main.py
 src/aitestkit/core/__init__.py
 src/aitestkit/core/config.py
 src/aitestkit/core/engine.py
+src/aitestkit/core/plugins.py
 src/aitestkit/core/runner.py
 src/aitestkit/dashboard/__init__.py
 src/aitestkit/dashboard/app.py
@@ -29,6 +30,7 @@ src/aitestkit/reports/__init__.py
 src/aitestkit/reports/base.py
 src/aitestkit/reports/csv_report.py
 src/aitestkit/reports/exporter.py
+src/aitestkit/reports/html_report.py
 src/aitestkit/reports/json_report.py
 src/aitestkit/safety/__init__.py
 src/aitestkit/safety/evaluator.py
@@ -36,5 +38,6 @@ src/aitestkit/utils/__init__.py
 src/aitestkit/utils/logger.py
 src/aitestkit/vision/__init__.py
 src/aitestkit/vision/evaluator.py
+tests/test_all.py
 tests/test_performance.py
 tests/test_reports.py
