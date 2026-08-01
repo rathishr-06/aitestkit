@@ -26,11 +26,16 @@ src/aitestkit/llm/metrics.py
 src/aitestkit/performance/__init__.py
 src/aitestkit/performance/evaluator.py
 src/aitestkit/performance/latency.py
+src/aitestkit/performance/leak_scanner.py
 src/aitestkit/performance/load_tester.py
 src/aitestkit/performance/stress_tester.py
 src/aitestkit/performance/system.py
 src/aitestkit/prompt/__init__.py
 src/aitestkit/prompt/evaluator.py
+src/aitestkit/qa/ci.py
+src/aitestkit/qa/generator.py
+src/aitestkit/qa/notifier.py
+src/aitestkit/qa/runner.py
 src/aitestkit/rag/__init__.py
 src/aitestkit/rag/metrics.py
 src/aitestkit/reports/__init__.py

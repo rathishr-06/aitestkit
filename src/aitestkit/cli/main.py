@@ -22,6 +22,16 @@ from aitestkit.reports.html_report import HTMLReportGenerator
 from aitestkit.core.inspector import FrameworkInspector
 from aitestkit.performance.stress_tester import StressTester
 
+from aitestkit.qa.generator import QATestGenerator
+
+
+from aitestkit.qa.runner import QATestRunner
+
+from aitestkit.qa.ci import CIGenerator
+
+from aitestkit.qa.notifier import QANotifier
+
+from aitestkit.performance.leak_scanner import LongevityLeakScanner
 
 
 console = Console()
@@ -412,6 +422,138 @@ def stress(max_users):
     table.add_row("Max Stable Capacity", f"{res['breaking_user_capacity']} Users")
 
     console.print(table)
+
+
+@cli.command()
+@click.option("--domain", default="AI Customer Support", help="Target domain for test case generation")
+def generate_suite(domain):
+    """Automatically synthesize an A-to-Z QA Test Case Suite with edge & security cases."""
+    console.print(f"[bold cyan]Synthesizing QA Test Suite for domain: '{domain}'...[/bold cyan]\n")
+
+    suite = QATestGenerator.generate_suite(base_domain=domain)
+
+    table = Table(title=f"📋 Synthesized QA Test Plan ({len(suite)} Test Cases)")
+    table.add_column("Test ID", style="bold yellow")
+    table.add_column("Category", style="cyan")
+    table.add_column("Input Prompt Sample", style="magenta")
+    table.add_column("Expected QA Behavior", style="green")
+
+    for tc in suite:
+        table.add_row(tc.test_id, tc.category, tc.prompt, tc.expected_behavior)
+
+    console.print(table)
+
+
+@cli.command()
+@click.option("--domain", default="Fintech Banking", help="Domain context for QA testing")
+@click.option("--threshold", default=0.70, help="Accuracy pass threshold (0.0 to 1.0)")
+def test(domain, threshold):
+    """Execute automated A-to-Z QA test assertions suite."""
+    console.print(f"[bold blue]Executing Automated QA Suite for '{domain}' (Pass Threshold: {threshold*100}%)...[/bold blue]\n")
+
+    runner = QATestRunner(accuracy_threshold=threshold)
+    results = runner.run_suite(domain=domain)
+
+    table = Table(title=f"🧪 QA Test Suite Execution Results")
+    table.add_column("Test ID", style="bold yellow")
+    table.add_column("Category", style="cyan")
+    table.add_column("Score", style="magenta")
+    table.add_column("Status", style="bold green")
+    table.add_column("Execution Details", style="white")
+
+    passed_count = 0
+    for r in results:
+        if r.status == "PASSED":
+            passed_count += 1
+            status_str = "[bold green]PASSED[/bold green]"
+        else:
+            status_str = "[bold red]FAILED[/bold red]"
+
+        table.add_row(r.test_id, r.category, f"{r.score*100:.1f}%", status_str, r.details)
+
+    console.print(table)
+    
+    total = len(results)
+    pass_rate = (passed_count / total) * 100 if total > 0 else 0
+    console.print(f"\n[bold yellow]Final QA Summary:[/bold yellow] Passed {passed_count}/{total} tests ({pass_rate:.1f}% Pass Rate)")
+
+
+@cli.command()
+def init_ci():
+    """Auto-generate GitHub Actions CI/CD pipeline workflow for automated PR testing."""
+    console.print("[bold cyan]Generating GitHub Actions AI QA Pipeline...[/bold cyan]\n")
+
+    created_path = CIGenerator.generate_github_action()
+
+    console.print(Panel.fit(
+        f"[bold green]SUCCESS![/bold green]\n"
+        f"Pipeline workflow created at: [bold yellow]{created_path}[/bold yellow]\n\n"
+        "Every push or pull request will now automatically trigger:\n"
+        " • System Diagnostics (`aitest doctor`)\n"
+        " • Framework Scanning (`aitest scan`)\n"
+        " • QA Assertion Testing (`aitest test`)\n"
+        " • Markdown Summary Reports (`aitest report`)",
+        title="CI/CD QA Automation Enabled"
+    ))
+
+
+@cli.command()
+@click.option("--url", required=True, help="Slack / Discord Webhook URL")
+@click.option("--domain", default="Fintech Banking", help="Target domain context")
+def notify(url, domain):
+    """Trigger automated QA test suite and send real-time alerts to Slack/Discord."""
+    console.print(f"[bold cyan]Running QA Test Suite & Sending Webhook Alert...[/bold cyan]\n")
+
+    runner = QATestRunner(accuracy_threshold=0.70)
+    results = runner.run_suite(domain=domain)
+
+    passed = sum(1 for r in results if r.status == "PASSED")
+    total = len(results)
+    pass_rate = (passed / total) * 100 if total > 0 else 0.0
+
+    summary = {
+        "domain": domain,
+        "total": total,
+        "passed": passed,
+        "failed": total - passed,
+        "pass_rate": pass_rate
+    }
+
+    # Execute Webhook Dispatch
+    success = QANotifier.send_webhook_alert(url, summary)
+
+    if success:
+        console.print("[bold green]Alert notification sent successfully to Webhook![/bold green]")
+    else:
+        console.print("[bold red]Failed to send Webhook alert. (Check URL or network connection)[/bold red]")
+
+@cli.command()
+@click.option("--iterations", default=50, help="Number of continuous execution loops")
+def leak_scan(iterations):
+    """Run Longevity & Memory Leak diagnostic scanner across continuous runs."""
+    console.print(f"[bold cyan]Running Memory Leak & Resource Drift Diagnostics ({iterations} iterations)...[/bold cyan]\n")
+
+    def target_workload():
+        # Simulated payload
+        data = [x for x in range(1000)]
+        del data
+
+    results = LongevityLeakScanner.run_longevity_scan(target_workload, iterations=iterations)
+
+    table = Table(title="🧠 Resource Leak & Longevity Benchmark Results")
+    table.add_column("Metric", style="cyan", no_wrap=True)
+    table.add_column("Measured Value", style="magenta")
+
+    table.add_row("Iterations Executed", str(results["iterations_executed"]))
+    table.add_row("Initial RAM", f"{results['initial_ram_mb']} MB")
+    table.add_row("Final RAM", f"{results['final_ram_mb']} MB")
+    table.add_row("Peak RAM Usage", f"{results['peak_ram_mb']} MB")
+    table.add_row("RAM Drift", f"{results['ram_drift_mb']} MB")
+    table.add_row("Average CPU Usage", f"{results['avg_cpu_percent']}%")
+    table.add_row("Leak Status", f"[bold green]{results['status']}[/bold green]" if not results["memory_leak_detected"] else f"[bold red]{results['status']}[/bold red]")
+
+    console.print(table)
+
 
 if __name__ == "__main__":
     cli()
