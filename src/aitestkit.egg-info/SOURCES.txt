@@ -16,7 +16,9 @@ src/aitestkit/core/doctor.py
 src/aitestkit/core/engine.py
 src/aitestkit/core/inspector.py
 src/aitestkit/core/plugins.py
+src/aitestkit/core/readiness.py
 src/aitestkit/core/runner.py
+src/aitestkit/cost/calculator.py
 src/aitestkit/dashboard/__init__.py
 src/aitestkit/dashboard/app.py
 src/aitestkit/leaderboard/__init__.py
@@ -47,6 +49,7 @@ src/aitestkit/reports/json_report.py
 src/aitestkit/reports/markdown_report.py
 src/aitestkit/safety/__init__.py
 src/aitestkit/safety/evaluator.py
+src/aitestkit/server/app.py
 src/aitestkit/utils/__init__.py
 src/aitestkit/utils/logger.py
 src/aitestkit/vision/__init__.py

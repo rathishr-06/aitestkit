@@ -5,77 +5,39 @@ from rich.table import Table
 
 # Core & Diagnostics
 from aitestkit.core.doctor import HealthDoctor
-from aitestkit.performance.load_tester import LoadTester
+from aitestkit.core.inspector import FrameworkInspector
+from aitestkit.core.readiness import ProductionReadinessEngine
 
-# Evaluation Engines
+# Performance & Benchmarks
+from aitestkit.performance.load_tester import LoadTester
+from aitestkit.performance.stress_tester import StressTester
+from aitestkit.performance.leak_scanner import LongevityLeakScanner
+
+# QA Automation Engine
+from aitestkit.qa.generator import QATestGenerator
+from aitestkit.qa.runner import QATestRunner
+from aitestkit.qa.ci import CIGenerator
+from aitestkit.qa.notifier import QANotifier
+
+# AI Evaluation Engines
 from aitestkit.llm.metrics import LLMEvaluator
 from aitestkit.rag.metrics import RAGEvaluator
 from aitestkit.safety.evaluator import SafetyEvaluator
 from aitestkit.prompt.evaluator import PromptEvaluator
 from aitestkit.vision.evaluator import VisionEvaluator
-
 from aitestkit.leaderboard.ranker import LeaderboardEngine
+
+# Exporters
 from aitestkit.reports.markdown_report import MarkdownReportGenerator
 from aitestkit.reports.html_report import HTMLReportGenerator
-
-
-from aitestkit.core.inspector import FrameworkInspector
-from aitestkit.performance.stress_tester import StressTester
-
-from aitestkit.qa.generator import QATestGenerator
-
-
-from aitestkit.qa.runner import QATestRunner
-
-from aitestkit.qa.ci import CIGenerator
-
-from aitestkit.qa.notifier import QANotifier
-
-from aitestkit.performance.leak_scanner import LongevityLeakScanner
-
 
 console = Console()
 
 
 @click.group()
 def cli():
-    """⚡ AITestKit — Universal AI Testing & Evaluation Platform."""
+    """⚡ AITestKit — One Platform. Every AI Test."""
     pass
-
-
-@cli.command()
-def scan():
-    """Automatically detects local AI setup and suggests evaluation modules."""
-    console.print(
-        Panel.fit(
-            "[bold green]AITestKit Scanner Engine[/bold green]\nScanning environment for frameworks...",
-            title="AITestKit",
-        )
-    )
-
-    detected = []
-    try:
-        import langchain
-
-        detected.append("LangChain")
-    except ImportError:
-        pass
-
-    try:
-        import llama_index
-
-        detected.append("LlamaIndex")
-    except ImportError:
-        pass
-
-    if detected:
-        console.print(
-            f"[bold yellow]Detected frameworks:[/bold yellow] {', '.join(detected)}"
-        )
-    else:
-        console.print(
-            "[bold red]No heavy frameworks detected.[/bold red] Running in Pure Native Mode!"
-        )
 
 
 @cli.command()
@@ -110,6 +72,174 @@ def doctor():
 
 
 @cli.command()
+def scan():
+    """Automatically detects local AI setup and suggests evaluation modules."""
+    console.print(
+        Panel.fit(
+            "[bold green]AITestKit Scanner Engine[/bold green]\nScanning"
+            " environment for frameworks & vector stores...",
+            title="AITestKit",
+        )
+    )
+
+    result = FrameworkInspector.scan_environment()
+    stack = result["detected_stack"]
+    recs = result["recommended_tests"]
+
+    table = Table(title="Project Auto-Detection Summary")
+    table.add_column("Category", style="cyan")
+    table.add_column("Detected Components", style="magenta")
+
+    table.add_row(
+        "Framework / Stack",
+        ", ".join(stack) if stack else "Pure Native Mode",
+    )
+    table.add_row("Recommended Tests", "\n".join(recs))
+
+    console.print(table)
+
+
+@cli.command()
+@click.option(
+    "--domain",
+    default="Healthcare",
+    help="Target domain context for QA synthesis",
+)
+def qa(domain):
+    """Automatically synthesize QA test suite (Functional, Boundary, Security)."""
+    console.print(
+        f"[bold cyan]Synthesizing A-to-Z QA Test Suite for domain:"
+        f" '{domain}'...[/bold cyan]\n"
+    )
+
+    suite = QATestGenerator.generate_suite(base_domain=domain)
+
+    table = Table(title=f"📋 Synthesized QA Test Plan ({len(suite)} Test Cases)")
+    table.add_column("Test ID", style="bold yellow")
+    table.add_column("Category", style="cyan")
+    table.add_column("Input Prompt Sample", style="magenta")
+    table.add_column("Expected QA Behavior", style="green")
+
+    for tc in suite:
+        table.add_row(tc.test_id, tc.category, tc.prompt, tc.expected_behavior)
+
+    console.print(table)
+
+
+@cli.command()
+@click.option(
+    "--domain",
+    default="Fintech Banking",
+    help="Domain context for QA testing",
+)
+@click.option(
+    "--threshold", default=0.70, help="Accuracy pass threshold (0.0 to 1.0)"
+)
+def test(domain, threshold):
+    """Execute automated A-to-Z QA test assertions suite."""
+    console.print(
+        f"[bold blue]Executing Automated QA Suite for '{domain}' (Pass"
+        f" Threshold: {threshold*100}%)...[/bold blue]\n"
+    )
+
+    runner = QATestRunner(accuracy_threshold=threshold)
+    results = runner.run_suite(domain=domain)
+
+    table = Table(title="🧪 QA Test Suite Execution Results")
+    table.add_column("Test ID", style="bold yellow")
+    table.add_column("Category", style="cyan")
+    table.add_column("Score", style="magenta")
+    table.add_column("Status", style="bold green")
+    table.add_column("Execution Details", style="white")
+
+    passed_count = 0
+    for r in results:
+        if r.status == "PASSED":
+            passed_count += 1
+            status_str = "[bold green]PASSED[/bold green]"
+        else:
+            status_str = "[bold red]FAILED[/bold red]"
+
+        table.add_row(
+            r.test_id, r.category, f"{r.score*100:.1f}%", status_str, r.details
+        )
+
+    console.print(table)
+
+    total = len(results)
+    pass_rate = (passed_count / total) * 100 if total > 0 else 0
+    console.print(
+        f"\n[bold yellow]Final QA Summary:[/bold yellow] Passed"
+        f" {passed_count}/{total} tests ({pass_rate:.1f}% Pass Rate)"
+    )
+
+
+@cli.command()
+@click.option(
+    "--domain", default="Healthcare", help="Domain context for test run"
+)
+def run(domain):
+    """Run full evaluation pipeline and generate Production Readiness Score."""
+    console.print(
+        f"[bold blue]Executing Complete AI Quality & Readiness Pipeline for"
+        f" '{domain}'...[/bold blue]\n"
+    )
+
+    report = ProductionReadinessEngine.evaluate_readiness()
+
+    table = Table(title="🚀 Production Readiness Assessment")
+    table.add_column("Readiness Metric", style="cyan")
+    table.add_column("Score / Status", style="magenta")
+
+    table.add_row(
+        "Overall Readiness Score",
+        f"[bold yellow]{report.overall_score}/100[/bold yellow]",
+    )
+    table.add_row("Performance Score", f"{report.performance_score}%")
+    table.add_row("AI Accuracy Score", f"{report.ai_accuracy_score}%")
+    table.add_row("Hallucination Rate", f"{report.hallucination_rate}%")
+    table.add_row("Prompt Robustness", f"{report.prompt_robustness}%")
+    table.add_row(
+        "Safety Audit", f"[bold green]{report.safety_status}[/bold green]"
+    )
+    table.add_row(
+        "Load Test", f"[bold green]{report.load_test_status}[/bold green]"
+    )
+    table.add_row(
+        "Stress Test",
+        f"[bold yellow]{report.stress_test_status}[/bold yellow]",
+    )
+    table.add_row(
+        "Memory Leak Test",
+        f"[bold green]{report.memory_leak_status}[/bold green]",
+    )
+
+    console.print(table)
+    console.print(
+        f"\n[bold yellow]Final Verdict:[/bold yellow] {report.final_verdict}\n"
+    )
+
+    if report.suggested_improvements:
+        console.print("[bold cyan]Suggested Improvements:[/bold cyan]")
+        for imp in report.suggested_improvements:
+            console.print(f" • {imp}")
+
+    if report.explanations:
+        console.print(
+            "\n[bold red]Failure Explanations & Root Cause Fixes:[/bold red]"
+        )
+        for exp in report.explanations:
+            console.print(
+                f" [bold yellow][{exp.test_id}][/bold yellow] {exp.issue_type}"
+            )
+            console.print(f"   [dim]Possible Cause:[/dim] {exp.possible_cause}")
+            console.print(
+                "   [bold green]Recommended Fix:[/bold green]"
+                f" {exp.recommended_fix}\n"
+            )
+
+
+@cli.command()
 @click.option(
     "--users", default=5, help="Number of concurrent simulated users"
 )
@@ -138,6 +268,84 @@ def load(users, requests):
 
     for key, val in res.items():
         table.add_row(str(key), str(val))
+
+    console.print(table)
+
+
+@cli.command()
+@click.option("--max-users", default=50, help="Max users for stress ramping")
+def stress(max_users):
+    """Run stress testing to detect breaking/crash points."""
+    console.print(
+        f"[bold red]Running Stress Test up to {max_users} concurrent users...[/bold red]\n"
+    )
+
+    def target():
+        import time
+
+        time.sleep(0.02)
+
+    tester = StressTester()
+    res = tester.find_breaking_point(
+        target, start_users=5, max_users=max_users, step=10
+    )
+
+    table = Table(title="System Stress & Crash Point Benchmark")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="magenta")
+
+    table.add_row(
+        "Breaking Point Detected",
+        (
+            "[bold red]YES[/bold red]"
+            if res["breaking_point_detected"]
+            else "[bold green]NO (Stable)[/bold green]"
+        ),
+    )
+    table.add_row(
+        "Max Stable Capacity", f"{res['breaking_user_capacity']} Users"
+    )
+
+    console.print(table)
+
+
+@cli.command()
+@click.option(
+    "--iterations", default=50, help="Number of continuous execution loops"
+)
+def leak_scan(iterations):
+    """Run Longevity & Memory Leak diagnostic scanner across continuous runs."""
+    console.print(
+        f"[bold cyan]Running Memory Leak & Resource Drift Diagnostics"
+        f" ({iterations} iterations)...[/bold cyan]\n"
+    )
+
+    def target_workload():
+        data = [x for x in range(1000)]
+        del data
+
+    results = LongevityLeakScanner.run_longevity_scan(
+        target_workload, iterations=iterations
+    )
+
+    table = Table(title="🧠 Resource Leak & Longevity Benchmark Results")
+    table.add_column("Metric", style="cyan", no_wrap=True)
+    table.add_column("Measured Value", style="magenta")
+
+    table.add_row("Iterations Executed", str(results["iterations_executed"]))
+    table.add_row("Initial RAM", f"{results['initial_ram_mb']} MB")
+    table.add_row("Final RAM", f"{results['final_ram_mb']} MB")
+    table.add_row("Peak RAM Usage", f"{results['peak_ram_mb']} MB")
+    table.add_row("RAM Drift", f"{results['ram_drift_mb']} MB")
+    table.add_row("Average CPU Usage", f"{results['avg_cpu_percent']}%")
+    table.add_row(
+        "Leak Status",
+        (
+            f"[bold green]{results['status']}[/bold green]"
+            if not results["memory_leak_detected"]
+            else f"[bold red]{results['status']}[/bold red]"
+        ),
+    )
 
     console.print(table)
 
@@ -312,29 +520,42 @@ def eval_vision(ground_truth, extracted):
 
 
 @cli.command()
-def dashboard():
-    """Launch Streamlit Interactive Dashboard."""
-    import subprocess
-    import sys
-    from pathlib import Path
-
-    dashboard_path = Path(__file__).parent.parent / "dashboard" / "app.py"
-    console.print(
-        "[bold cyan]Launching AITestKit Streamlit Dashboard...[/bold cyan]"
-    )
-    subprocess.run([sys.executable, "-m", "streamlit", "run", str(dashboard_path)])
-
-
-@cli.command()
 def leaderboard():
     """Compare and rank multiple models side-by-side."""
-    console.print("[bold yellow]Running Multi-Model Leaderboard Benchmark...[/bold yellow]\n")
+    console.print(
+        "[bold yellow]Running Multi-Model Leaderboard Benchmark...[/bold"
+        " yellow]\n"
+    )
 
     test_models = [
-        {"model_name": "Llama-3-8B", "accuracy": 85.0, "latency_sec": 0.45, "throughput_tps": 45.0, "safety_score": 98.0},
-        {"model_name": "DeepSeek-R1", "accuracy": 92.5, "latency_sec": 0.85, "throughput_tps": 28.0, "safety_score": 95.0},
-        {"model_name": "Qwen-2.5-7B", "accuracy": 88.0, "latency_sec": 0.35, "throughput_tps": 52.0, "safety_score": 99.0},
-        {"model_name": "GPT-4o-Mini", "accuracy": 94.0, "latency_sec": 0.50, "throughput_tps": 40.0, "safety_score": 99.5},
+        {
+            "model_name": "Llama-3-8B",
+            "accuracy": 85.0,
+            "latency_sec": 0.45,
+            "throughput_tps": 45.0,
+            "safety_score": 98.0,
+        },
+        {
+            "model_name": "DeepSeek-R1",
+            "accuracy": 92.5,
+            "latency_sec": 0.85,
+            "throughput_tps": 28.0,
+            "safety_score": 95.0,
+        },
+        {
+            "model_name": "Qwen-2.5-7B",
+            "accuracy": 88.0,
+            "latency_sec": 0.35,
+            "throughput_tps": 52.0,
+            "safety_score": 99.0,
+        },
+        {
+            "model_name": "GPT-4o-Mini",
+            "accuracy": 94.0,
+            "latency_sec": 0.50,
+            "throughput_tps": 40.0,
+            "safety_score": 99.5,
+        },
     ]
 
     engine = LeaderboardEngine()
@@ -355,154 +576,79 @@ def leaderboard():
             f"{item.accuracy}%",
             f"{item.latency_sec}s",
             f"{item.throughput_tps}",
-            f"{item.overall_score}/100"
+            f"{item.overall_score}/100",
         )
 
     console.print(table)
 
 
 @cli.command()
-@click.option("--format", default="html", type=click.Choice(["html", "md"]), help="Report format (html or md)")
+@click.option(
+    "--format",
+    default="html",
+    type=click.Choice(["html", "md"]),
+    help="Report format (html or md)",
+)
 def report(format):
     """Generate standalone benchmark reports."""
     console.print(f"[bold green]Generating {format.upper()} Report...[/bold green]")
-    
+
     sample_data = {
-        "llm": {"accuracy": "88.0%", "reasoning": "80.0%"},
-        "rag": {"faithfulness": "85.0%", "precision": "78.0%"},
-        "safety": {"status": "PASSED", "injection_risk": "0.0%"}
+        "readiness": {
+            "score": "91/100",
+            "verdict": "READY AFTER MINOR IMPROVEMENTS",
+        },
+        "llm": {"accuracy": "96.0%", "hallucination": "2.0%"},
+        "safety": {"status": "PASSED"},
     }
 
     if format == "html":
         HTMLReportGenerator.generate(sample_data, "reports/summary.html")
-        console.print("[bold cyan]Saved HTML Report to reports/summary.html[/bold cyan]")
+        console.print(
+            "[bold cyan]Saved HTML Report to reports/summary.html[/bold cyan]"
+        )
     else:
         MarkdownReportGenerator.generate(sample_data, "reports/summary.md")
-        console.print("[bold cyan]Saved Markdown Report to reports/summary.md[/bold cyan]")
-
-
-
-@cli.command()
-def scan():
-    """Automatically detects local AI setup and suggests evaluation modules."""
-    console.print(Panel.fit("[bold green]AITestKit Scanner Engine[/bold green]\nScanning environment for frameworks & vector stores...", title="AITestKit"))
-    
-    result = FrameworkInspector.scan_environment()
-    stack = result["detected_stack"]
-    recs = result["recommended_tests"]
-
-    table = Table(title="Project Auto-Detection Summary")
-    table.add_column("Category", style="cyan")
-    table.add_column("Detected Components", style="magenta")
-
-    table.add_row("Framework / Stack", ", ".join(stack) if stack else "Pure Native Mode")
-    table.add_row("Recommended Tests", "\n".join(recs))
-
-    console.print(table)
-
-
-@cli.command()
-@click.option("--max-users", default=50, help="Max users for stress ramping")
-def stress(max_users):
-    """Run stress testing to detect breaking/crash points."""
-    console.print(f"[bold red]Running Stress Test up to {max_users} concurrent users...[/bold red]\n")
-
-    def target():
-        import time
-        time.sleep(0.02)
-
-    tester = StressTester()
-    res = tester.find_breaking_point(target, start_users=5, max_users=max_users, step=10)
-
-    table = Table(title="System Stress & Crash Point Benchmark")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="magenta")
-
-    table.add_row("Breaking Point Detected", "[bold red]YES[/bold red]" if res["breaking_point_detected"] else "[bold green]NO (Stable)[/bold green]")
-    table.add_row("Max Stable Capacity", f"{res['breaking_user_capacity']} Users")
-
-    console.print(table)
-
-
-@cli.command()
-@click.option("--domain", default="AI Customer Support", help="Target domain for test case generation")
-def generate_suite(domain):
-    """Automatically synthesize an A-to-Z QA Test Case Suite with edge & security cases."""
-    console.print(f"[bold cyan]Synthesizing QA Test Suite for domain: '{domain}'...[/bold cyan]\n")
-
-    suite = QATestGenerator.generate_suite(base_domain=domain)
-
-    table = Table(title=f"📋 Synthesized QA Test Plan ({len(suite)} Test Cases)")
-    table.add_column("Test ID", style="bold yellow")
-    table.add_column("Category", style="cyan")
-    table.add_column("Input Prompt Sample", style="magenta")
-    table.add_column("Expected QA Behavior", style="green")
-
-    for tc in suite:
-        table.add_row(tc.test_id, tc.category, tc.prompt, tc.expected_behavior)
-
-    console.print(table)
-
-
-@cli.command()
-@click.option("--domain", default="Fintech Banking", help="Domain context for QA testing")
-@click.option("--threshold", default=0.70, help="Accuracy pass threshold (0.0 to 1.0)")
-def test(domain, threshold):
-    """Execute automated A-to-Z QA test assertions suite."""
-    console.print(f"[bold blue]Executing Automated QA Suite for '{domain}' (Pass Threshold: {threshold*100}%)...[/bold blue]\n")
-
-    runner = QATestRunner(accuracy_threshold=threshold)
-    results = runner.run_suite(domain=domain)
-
-    table = Table(title=f"🧪 QA Test Suite Execution Results")
-    table.add_column("Test ID", style="bold yellow")
-    table.add_column("Category", style="cyan")
-    table.add_column("Score", style="magenta")
-    table.add_column("Status", style="bold green")
-    table.add_column("Execution Details", style="white")
-
-    passed_count = 0
-    for r in results:
-        if r.status == "PASSED":
-            passed_count += 1
-            status_str = "[bold green]PASSED[/bold green]"
-        else:
-            status_str = "[bold red]FAILED[/bold red]"
-
-        table.add_row(r.test_id, r.category, f"{r.score*100:.1f}%", status_str, r.details)
-
-    console.print(table)
-    
-    total = len(results)
-    pass_rate = (passed_count / total) * 100 if total > 0 else 0
-    console.print(f"\n[bold yellow]Final QA Summary:[/bold yellow] Passed {passed_count}/{total} tests ({pass_rate:.1f}% Pass Rate)")
+        console.print(
+            "[bold cyan]Saved Markdown Report to reports/summary.md[/bold cyan]"
+        )
 
 
 @cli.command()
 def init_ci():
     """Auto-generate GitHub Actions CI/CD pipeline workflow for automated PR testing."""
-    console.print("[bold cyan]Generating GitHub Actions AI QA Pipeline...[/bold cyan]\n")
+    console.print(
+        "[bold cyan]Generating GitHub Actions AI QA Pipeline...[/bold cyan]\n"
+    )
 
     created_path = CIGenerator.generate_github_action()
 
-    console.print(Panel.fit(
-        f"[bold green]SUCCESS![/bold green]\n"
-        f"Pipeline workflow created at: [bold yellow]{created_path}[/bold yellow]\n\n"
-        "Every push or pull request will now automatically trigger:\n"
-        " • System Diagnostics (`aitest doctor`)\n"
-        " • Framework Scanning (`aitest scan`)\n"
-        " • QA Assertion Testing (`aitest test`)\n"
-        " • Markdown Summary Reports (`aitest report`)",
-        title="CI/CD QA Automation Enabled"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold green]SUCCESS![/bold green]\n"
+            "Pipeline workflow created at: [bold"
+            f" yellow]{created_path}[/bold yellow]\n\n"
+            "Every push or pull request will now automatically trigger:\n"
+            " • System Diagnostics (`aitest doctor`)\n"
+            " • Framework Scanning (`aitest scan`)\n"
+            " • QA Assertion Testing (`aitest test`)\n"
+            " • Markdown Summary Reports (`aitest report`)",
+            title="CI/CD QA Automation Enabled",
+        )
+    )
 
 
 @cli.command()
 @click.option("--url", required=True, help="Slack / Discord Webhook URL")
-@click.option("--domain", default="Fintech Banking", help="Target domain context")
+@click.option(
+    "--domain", default="Fintech Banking", help="Target domain context"
+)
 def notify(url, domain):
     """Trigger automated QA test suite and send real-time alerts to Slack/Discord."""
-    console.print(f"[bold cyan]Running QA Test Suite & Sending Webhook Alert...[/bold cyan]\n")
+    console.print(
+        "[bold cyan]Running QA Test Suite & Sending Webhook Alert...[/bold"
+        " cyan]\n"
+    )
 
     runner = QATestRunner(accuracy_threshold=0.70)
     results = runner.run_suite(domain=domain)
@@ -516,43 +662,47 @@ def notify(url, domain):
         "total": total,
         "passed": passed,
         "failed": total - passed,
-        "pass_rate": pass_rate
+        "pass_rate": pass_rate,
     }
 
-    # Execute Webhook Dispatch
     success = QANotifier.send_webhook_alert(url, summary)
 
     if success:
-        console.print("[bold green]Alert notification sent successfully to Webhook![/bold green]")
+        console.print(
+            "[bold green]Alert notification sent successfully to Webhook![/bold"
+            " green]"
+        )
     else:
-        console.print("[bold red]Failed to send Webhook alert. (Check URL or network connection)[/bold red]")
+        console.print(
+            "[bold red]Failed to send Webhook alert. (Check URL or network"
+            " connection)[/bold red]"
+        )
+
 
 @cli.command()
-@click.option("--iterations", default=50, help="Number of continuous execution loops")
-def leak_scan(iterations):
-    """Run Longevity & Memory Leak diagnostic scanner across continuous runs."""
-    console.print(f"[bold cyan]Running Memory Leak & Resource Drift Diagnostics ({iterations} iterations)...[/bold cyan]\n")
+def dashboard():
+    """Launch Streamlit Interactive Studio Web Dashboard."""
+    import subprocess
+    import sys
+    from pathlib import Path
 
-    def target_workload():
-        # Simulated payload
-        data = [x for x in range(1000)]
-        del data
+    dashboard_path = Path(__file__).parent.parent / "dashboard" / "app.py"
+    console.print(
+        "[bold cyan]Launching AITestKit Streamlit Dashboard...[/bold cyan]"
+    )
+    subprocess.run([sys.executable, "-m", "streamlit", "run", str(dashboard_path)])
 
-    results = LongevityLeakScanner.run_longevity_scan(target_workload, iterations=iterations)
 
-    table = Table(title="🧠 Resource Leak & Longevity Benchmark Results")
-    table.add_column("Metric", style="cyan", no_wrap=True)
-    table.add_column("Measured Value", style="magenta")
-
-    table.add_row("Iterations Executed", str(results["iterations_executed"]))
-    table.add_row("Initial RAM", f"{results['initial_ram_mb']} MB")
-    table.add_row("Final RAM", f"{results['final_ram_mb']} MB")
-    table.add_row("Peak RAM Usage", f"{results['peak_ram_mb']} MB")
-    table.add_row("RAM Drift", f"{results['ram_drift_mb']} MB")
-    table.add_row("Average CPU Usage", f"{results['avg_cpu_percent']}%")
-    table.add_row("Leak Status", f"[bold green]{results['status']}[/bold green]" if not results["memory_leak_detected"] else f"[bold red]{results['status']}[/bold red]")
-
-    console.print(table)
+@cli.command()
+@click.option("--host", default="0.0.0.0", help="Host address to bind")
+@click.option("--port", default=8000, help="Port to serve REST API")
+def serve(host, port):
+    """Launch AITestKit SaaS REST API Control Plane Server."""
+    import uvicorn
+    console.print(
+        f"[bold cyan]Launching AITestKit SaaS Control Plane API on http://{host}:{port}...[/bold cyan]"
+    )
+    uvicorn.run("aitestkit.server.app:app", host=host, port=port, reload=True)
 
 
 if __name__ == "__main__":
