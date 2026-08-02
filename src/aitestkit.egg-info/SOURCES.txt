@@ -9,6 +9,8 @@ src/aitestkit.egg-info/requires.txt
 src/aitestkit.egg-info/top_level.txt
 src/aitestkit/cli/__init__.py
 src/aitestkit/cli/main.py
+src/aitestkit/cli/scanner.py
+src/aitestkit/copilot/analyzer.py
 src/aitestkit/core/__init__.py
 src/aitestkit/core/config.py
 src/aitestkit/core/db.py
@@ -21,6 +23,7 @@ src/aitestkit/core/runner.py
 src/aitestkit/cost/calculator.py
 src/aitestkit/dashboard/__init__.py
 src/aitestkit/dashboard/app.py
+src/aitestkit/db/models.py
 src/aitestkit/leaderboard/__init__.py
 src/aitestkit/leaderboard/ranker.py
 src/aitestkit/llm/__init__.py

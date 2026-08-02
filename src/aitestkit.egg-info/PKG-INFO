@@ -13,11 +13,28 @@ Requires-Dist: pydantic>=2.0.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 
-# ⚡ AITestKit — Universal AI Evaluation Platform
+# ⚡ AITestKit — Enterprise SaaS & Open-Source AI Quality Control Engine
 
-A zero-dependency, plugin-first evaluation platform for LLMs, RAG, Safety, and Vision applications.
+**AITestKit** is an end-to-end AI Quality Engineering & Production Readiness Framework. It provides automated benchmarking, hallucination tracking, prompt injection safety auditing, cost intelligence, and a dynamic **AI Quality Engineer Copilot**.
 
-## 🚀 Quickstart
+---
+
+## 🚀 Key Features
+
+* **🤖 AI Quality Engineer Copilot**: Architectural root-cause analysis, dynamic priority fix roadmaps, and interactive "What-If" score simulation.
+* **🛡️ Security & Guardrails Audit**: Automated prompt injection, jailbreak, and PII leakage detection.
+* **🧠 LLM & RAG Metrics Engine**: Semantic similarity, ground-truth faithfulness, accuracy, and hallucination scoring.
+* **💰 Cost Intelligence & Token Analytics**: Granular token usage tracking, per-request cost attribution, and cloud bill forecasting.
+* **⚡ Concurrency Load & Stress Tester**: P50/P90/P95 latency telemetry and memory drift auditing under heavy traffic.
+* **🌐 SaaS REST Control Plane API**: FastAPI backend with SQLite persistence, multi-tenant authentication, async jobs, and webhook alerts.
+
+---
+
+## ⚙️ Installation
 
 ```bash
-pip install aitestkit
+git clone [https://github.com/your-username/aitestkit.git](https://github.com/your-username/aitestkit.git)
+cd aitestkit
+python -m venv .venv
+.venv\Scripts\activate   # On Windows
+pip install -e .

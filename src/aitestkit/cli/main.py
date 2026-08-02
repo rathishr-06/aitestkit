@@ -31,6 +31,11 @@ from aitestkit.leaderboard.ranker import LeaderboardEngine
 from aitestkit.reports.markdown_report import MarkdownReportGenerator
 from aitestkit.reports.html_report import HTMLReportGenerator
 
+
+import sys
+import typer
+from aitestkit.cli.scanner import AutoProjectScanner
+
 console = Console()
 
 
@@ -704,6 +709,28 @@ def serve(host, port):
     )
     uvicorn.run("aitestkit.server.app:app", host=host, port=port, reload=True)
 
+
+app = typer.Typer(help="⚡ AITestKit Enterprise AI Quality Command Line Interface")
+
+@app.command()
+def run(target_dir: str = "."):
+    """Zero-Code Automated Project Scan & Evaluation Suite."""
+    AutoProjectScanner.scan_and_evaluate(target_dir)
+
+@app.command()
+def serve():
+    """Launch REST Control Plane Server."""
+    import uvicorn
+    uvicorn.run("aitestkit.server.app:app", host="127.0.0.1", port=8000, reload=True)
+
+@app.command()
+def dashboard():
+    """Launch Operations Studio Dashboard UI."""
+    import subprocess
+    subprocess.run(["streamlit", "run", "src/aitestkit/dashboard/app.py"])
+
+if __name__ == "__main__":
+    app()
 
 if __name__ == "__main__":
     cli()
