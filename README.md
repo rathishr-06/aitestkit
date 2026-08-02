@@ -18,7 +18,7 @@
 ## ⚙️ Installation
 
 ```bash
-git clone [https://github.com/your-username/aitestkit.git](https://github.com/your-username/aitestkit.git)
+git clone [https://github.com/rathishr-06/aitestkit.git](https://github.com/rathishr-06/aitestkit.git)
 cd aitestkit
 python -m venv .venv
 .venv\Scripts\activate   # On Windows
