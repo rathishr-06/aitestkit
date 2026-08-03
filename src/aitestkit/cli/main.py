@@ -726,8 +726,12 @@ def serve():
 @app.command()
 def dashboard():
     """Launch Operations Studio Dashboard UI."""
+    import sys
     import subprocess
-    subprocess.run(["streamlit", "run", "src/aitestkit/dashboard/app.py"])
+    import aitestkit.dashboard.app as app_module
+    
+    app_path = app_module.__file__
+    subprocess.run([sys.executable, "-m", "streamlit", "run", app_path])
 
 if __name__ == "__main__":
     app()
